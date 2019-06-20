@@ -7,8 +7,6 @@
 #include "Adafruit_Thermal.h"
 #include "adalogo.h"
 #include "adaqrcode.h"
-//#include <DateTime.h>
-//#include <DateTimeStrings.h>
 #include <Servo.h>
 
 #define TIME_MSG_LEN  11   // time sync to PC is HEADER and unix time_t as ten ascii digits
@@ -29,6 +27,9 @@ Servo servo2;
 Servo servo3;
 
 
+String commands[4];
+int index = 0;
+
 
 char input;
 char input1;
@@ -42,6 +43,11 @@ boolean printen = false;
 int temp = 0;
 int pos = 0;
 
+String date;
+String tijd;
+
+#define INPUT_SIZE 30
+
 //byte input[256];
 
 
@@ -51,123 +57,85 @@ void setup() {
   servo1.attach(3);
   servo2.attach(9);
   servo3.attach(10);
-//   for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-//      // in steps of 1 degree
-//      servo1.write(pos);              // tell servo to go to position in variable 'pos'
-//      delay(8);                       // waits 15ms for the servo to reach the position
-//    }
-//    for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-//      servo1.write(pos);              // tell servo to go to position in variable 'pos'
-//      delay(5);                       // waits 15ms for the servo to reach the position
-//    }
-//     for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-//      // in steps of 1 degree
-//      servo2.write(pos);              // tell servo to go to position in variable 'pos'
-//      delay(8);                       // waits 15ms for the servo to reach the position
-//    }
-//    for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-//      servo2.write(pos);              // tell servo to go to position in variable 'pos'
-//      delay(5);                       // waits 15ms for the servo to reach the position
-//    }
-//     for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-//      // in steps of 1 degree
-//      servo3.write(pos);              // tell servo to go to position in variable 'pos'
-//      delay(8);                       // waits 15ms for the servo to reach the position
-//    }
-//    for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-//      servo3.write(pos);              // tell servo to go to position in variable 'pos'
-//      delay(5);                       // waits 15ms for the servo to reach the position
-//    }
 
+  servo1.write(0);
+  servo2.write(0);
+  servo3.write(0);
 }
 
 void loop() {
   bedrag = "";
-  reknum = "";
-  while (Serial.available() > 0) {   //input uit USB lezen
-    input = Serial.read();
+  reknum = "***********";
+  aantalBil = 0;
+  date = "";
+  tijd = "";
 
-
-    if (input == '$') {            //$ is voor het aangeven dat het over de 10Roebel biljetten gaat
-
-      while (Serial.available() > 0) {
-        input1 = Serial.read();
-
-        biljetten += input1;
-
-      }
-      aantalBil = biljetten.toInt();
-      biljetten = "";
-      servo10(aantalBil);
-      return;
-
+// Get next command from Serial (add 1 for final 0)
+  char input[INPUT_SIZE + 1];
+  byte size = Serial.readBytes(input, INPUT_SIZE);
+// Add the final 0 to end the C string
+    input[size] = 0;
+// Read each command pair 
+    
+    char* command = strtok(input, ">");
+    String content = String(command);
+   // Serial.println(command);
+      
+  if(content.startsWith("&") > 0 || content.startsWith("%") > 0 || content.startsWith("$") > 0)
+  {
+    String aantal = content;
+    aantal.remove(0, 1);
+    
+    if(content.startsWith("$") > 0){
+      dispenseBill(servo1, aantal.toInt());
+    }else if(content.startsWith("%") > 0){
+      //command = strtok(0, "%");
+      dispenseBill(servo2, aantal.toInt());
+    }else if(content.startsWith("&") > 0){
+      //command = strtok(0, "%");
+      dispenseBill(servo3, aantal.toInt());
     }
-
-    if (input == '%') {        //% is voor het aangeven dat het over de 20Roebel biljetten gaat
-
-
-      while (Serial.available() > 0) {
-        input2 = Serial.read();
-
-        biljetten += input2;
-
+  }
+  else{
+      //Serial.println("bonnetje");
+      
+      while (command != 0)
+      {
+        //Serial.print(index);
+        //Serial.println(command);
+        commands[index] = command;
+        index++;
+          // Split the command in two values
+    
+          // Find the next command in input string
+          command = strtok(0, ">");
       }
-      aantalBil = biljetten.toInt();
-      biljetten = "";
-      servo20(aantalBil);
-      return;
-    }
+    
+      //Serial.println(commands);
+      // > + <
+    
+      if(sizeof(commands) >= 4){
 
-    if (input == '&') {        //& is voor het aangeven dat het over de 50Roebel biljetten gaat
-
-      while (Serial.available() > 0) {
-        input3 = Serial.read();
-
-        biljetten += input3;
-
-      }
-      aantalBil = biljetten.toInt();
-      biljetten = "";
-      servo50(aantalBil);
-      return;
-    }
-
-    if (input == '>') {
-
-      while (Serial.available() > 0) {
-        input = Serial.read();
-
-        reknum += input;
-        if (input == '!') {
-          break;
+        if(commands[0] != ""){
+          bedrag = commands[0];
+          reknum += commands[1];
+          date = commands[2];
+          tijd = commands[3];
+          printen = true;
         }
+
+        
       }
-      break;
-    }
-    bedrag += input;
-
-    printen = true;
 
 
-
-    if (input == '!') {
-      break;
-    }
-
-
-
-    printen = true;
+      if(printen){
+        print();
+      }
   }
 
+  
 
-
-
-  if (printen) {
-    print();
-  }
-
-
-  delay(100);
+  
 }
 
 
@@ -185,19 +153,22 @@ void print() {
   printer.println("Opgenomen bedrag: ");
   printer.setSize('M');
   printer.justify('C');
-  printer.println("ROEBL " + bedrag);
+  printer.println("ROEBEL " + bedrag);
   printer.justify('L');
   printer.println("klant " + reknum);
   printer.setSize('S');
+  printer.justify('L');
+  printer.println("Datum: " + date);
+  printer.println("Tijd: " + tijd);
   printer.justify('C');
   printer.println("***   Tot ziens   ***");
   printer.println("");
   printer.println("");
-  printer.println("");
+  //printer.println("");
 
   printer.write(10);
   printer.sleep();      // Tell printer to sleep
-  delay(3000L);         // Sleep for 3 seconds
+  delay(3000);         // Sleep for 3 seconds
   printer.wake();       // MUST wake() before printing again, even if reset
   printer.setDefault(); // Restore printer to defaults
 
@@ -205,56 +176,23 @@ void print() {
   bedrag = "";
   reknum = "";
 
-}
-
-
-void servo10(int aantalKeren) {
-  temp = aantalKeren;
-  for (int i = 0; i < temp; i++) {
-    for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-      // in steps of 1 degree
-      servo1.write(pos);              // tell servo to go to position in variable 'pos'
-      delay(8);                       // waits 15ms for the servo to reach the position
-    }
-    for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-      servo1.write(pos);              // tell servo to go to position in variable 'pos'
-      delay(5);                       // waits 15ms for the servo to reach the position
-    }
+  for(int i =0; i< 3; i++){
+    commands[i] = "";
   }
+  index = 0;
 
 }
 
-void servo20(int aantalKeren) {
-  temp = aantalKeren;
-  for (int i = 0; i < temp; i++) {
-    for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+void dispenseBill(Servo pServo, int pAmount){
+  for (int i = 0; i < pAmount; i++) {
+    for (pos = 0; pos <= 165; pos += 1) { // goes from 0 degrees to 180 degrees
       // in steps of 1 degree
-      servo2.write(pos);              // tell servo to go to position in variable 'pos'
+      pServo.write(pos);              // tell servo to go to position in variable 'pos'
       delay(8);                       // waits 15ms for the servo to reach the position
     }
-    for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-      servo2.write(pos);              // tell servo to go to position in variable 'pos'
+    for (pos = 165; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+      pServo.write(pos);              // tell servo to go to position in variable 'pos'
       delay(5);                       // waits 15ms for the servo to reach the position
     }
   }
-
-
-
-}
-
-void servo50(int aantalKeren) {
-
-  temp = aantalKeren;
-  for (int i = 0; i < temp; i++) {
-    for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-      // in steps of 1 degree
-      servo3.write(pos);              // tell servo to go to position in variable 'pos'
-      delay(8);                       // waits 15ms for the servo to reach the position
-    }
-    for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-      servo3.write(pos);              // tell servo to go to position in variable 'pos'
-      delay(5);                       // waits 15ms for the servo to reach the position
-    }
-  }
-
 }
