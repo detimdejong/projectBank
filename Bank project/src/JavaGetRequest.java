@@ -49,7 +49,9 @@ public class JavaGetRequest {
 
         //https://debankproject34.azurewebsites.net/api
         //https://projectbank.azurewebsites.net/api/
-        String url = "https://debankproject34.azurewebsites.net/api" + a; // + controller + parameters
+        //https://project34bank.azurewebsites.net
+        //url/api/withdraw/iban/destiban/amount/pin
+        String url = "https://project34bank.azurewebsites.net/api/" + a ; // + controller + parameters
 
         try {  //open connectie naar API voor opvragen van gegevens en bedragen afschrijven
 

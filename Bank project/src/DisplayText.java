@@ -21,7 +21,7 @@ public class DisplayText extends ScreenElement implements OutputDevice {
         label = new Label();
         label.setForeground(Color.WHITE);
         label.setFont(new Font("SansSerif", Font.BOLD, 30));
-        label.setBounds(pos.x, pos.y, 400, 35);
+        label.setBounds(pos.x, pos.y, 1000, 35);
     }
 
     @Override

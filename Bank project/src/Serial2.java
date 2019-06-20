@@ -22,7 +22,7 @@ public class Serial2 {
         //open the port
         comPort.openPort();
         comPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0);
-        System.out.println("port opened succesfully");
+        //System.out.println("port opened succesfully");
 
         //create a listener and start listening
         comPort.addDataListener(new SerialPortDataListener() {

@@ -28,12 +28,17 @@ public class ATM {
     private String bedrag = "";
     private int bedragint = 0;
     private int kiesBiljet;
+    private String keuzebiljet;
     private String pin = "";
 
     private int keuze = 0;
     private int vijftig = 0;
     private int twintig = 0;
     private int tien = 0;
+
+    private int db10 = 0;
+    private int db20 = 0;
+    private int db50 = 0;
 
     private String cardnumber;
 
@@ -73,13 +78,17 @@ public class ATM {
     private JavaGetRequest httpGet;
     private String response;
 
+    private DatumTijd datumtijd;
+    private String date;
+    private String time;
+    private String datetime;
 
 
 
     private ArrayList<InputDevice> knoppen = new ArrayList<InputDevice>();
 
 
-    ATM() throws InterruptedException {
+    ATM() {
 
 
 
@@ -100,6 +109,8 @@ public class ATM {
 
         cardreader = new CardReader("Cardreader");
         keypad = new Keypad("Keypad");
+
+        datumtijd  = new DatumTijd();
 
         moneyButton1 = new ScreenButton("10", new Point(350, 200));
         moneyButton2 = new ScreenButton("20", new Point(350, 230));
@@ -140,14 +151,45 @@ public class ATM {
 
 
         SerialOut.open();   //seriele connectie openen naar gelddispenser
-        sleep(6000);  // even wachten om verbinding tot stand te brengen
+        try {
+            Thread.sleep(6000);  // even wachten om verbinding tot stand te brengen\
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         while (true) {
             doTransaction();
         }
     }
 
-    private void doTransaction() throws InterruptedException {
+    private void doTransaction() {
+
+        try {
+            response = httpGet.httpRequest("billItems/" + 10);
+            response = response.replaceAll("\n", "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        db10 = Integer.parseInt(response);
+
+        try {
+            response = httpGet.httpRequest("billItems/" + 20);
+            response = response.replaceAll("\n", "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        db20 = Integer.parseInt(response);
+
+        try {
+            response = httpGet.httpRequest("billItems/" + 50);
+            response = response.replaceAll("\n", "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        db50 = Integer.parseInt(response);
 
 
         text.giveOutput("Welkom");
@@ -249,31 +291,51 @@ public class ATM {
             System.out.println("gelukt");
             menu();
         } else if(response.equals("0")){
+            as.clear();
             System.out.println("pin incorrect");
             text.giveOutput("Pin incorrect, probeer het opnieuw");
             as.add(text);
-            Thread.sleep(3000);
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             goodbye();
             return;
         }else if(response.equals("2")) {
+            as.clear();
             System.out.println("pas geblokkeerd");
             text.giveOutput("pas geblokkeerd, neem contact op met de bank");
             as.add(text);
-            Thread.sleep(3000);
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             goodbye();
             return;
         }else if(response.equals("3")) {
+            as.clear();
             System.out.println("onbekende pas");
             text.giveOutput("Onbekende pas, neem contact op met de bank");
             as.add(text);
-            Thread.sleep(3000);
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             goodbye();
             return;
+        }else{
+
+            as.clear();
+            goodbye();
+
         }
 
     }
 
-    private void saldoScherm() throws InterruptedException {
+    private void saldoScherm(){
 
         as.clear(); //scherm leeg maken
         //saldo opvragen
@@ -313,7 +375,7 @@ public class ATM {
 
     }
 
-    private void menu() throws InterruptedException {
+    private void menu() {
         as.clear();
         text.giveOutput("Menu");
         as.add(text);
@@ -365,7 +427,7 @@ public class ATM {
 
 
 
-    private void geldOpnemen() throws InterruptedException {
+    private void geldOpnemen(){
         System.out.println("geld opnemen");
         as.clear(); //scherm leeg maken
 
@@ -424,7 +486,11 @@ public class ATM {
             as.clear();
             as.add(text);
 
-            Thread.sleep(2500);
+            try {
+                Thread.sleep(2500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
 
             menu();
@@ -433,7 +499,7 @@ public class ATM {
 
         //kijken of er genoeg saldo is en mogelijk gelijk afschrijven
         try {
-            response = httpGet.httpRequest("Withdraw/" + cardnumber + "/ATM/" + bedragint);
+            response = httpGet.httpRequest("Withdraw/" + cardnumber + "/ATM/" + bedragint +"/"+ pin);
             response = response.replaceAll("\n", "");
 
         } catch (IOException e) {
@@ -474,7 +540,13 @@ public class ATM {
 
         biljettenKiezen(); //biljetten kiezen
 
+        kiesBiljet = Integer.parseInt(keuzebiljet);  //gekozen biljet omzetten naar een int
+
+        biljettenBerekenen(kiesBiljet, bedragint);  //berekenen welke biljetten er uitgegevn moeten worden
+
+
         as.clear();
+
 
         text.giveOutput("Wilt u een bon?");  //tekst weergeven op scherm
         as.add(text);
@@ -483,11 +555,18 @@ public class ATM {
         as.add(noButton);
 
         //laatste 3 cijfers van Iban opslaan voor op de bon
-        starredIban = "***********";
+        starredIban = "";
         starredIban += cardnumber.charAt(11);
         starredIban += cardnumber.charAt(12);
         starredIban += cardnumber.charAt(13);
         System.out.println(starredIban);
+        System.out.println(bedragint);
+
+        date = datumtijd.getDate();
+        date = date.replaceAll("-", "/");
+        time = datumtijd.getTime();
+        datetime = date + ">"+ time;
+        System.out.println(datetime);
 
         //optie geven voor bon
         while (!gekozen) {
@@ -500,8 +579,14 @@ public class ATM {
 
                     if (input == "Yes") {  //als de gebruiken 'yes' heeft gekozen, gegevens naar arduino sturen voor bon
 
-                        SerialOut.sendToArduino("" + bedragint + ">" + starredIban);
-                        Thread.sleep(3500);
+                        SerialOut.sendToArduino(bedrag + ">" + starredIban +">"+ datetime);
+
+
+                        try {
+                            Thread.sleep(12000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                     gekozen = true;  //uit while loop breaken
 
@@ -524,48 +609,66 @@ public class ATM {
         text.giveOutput("en geld");
         as.add(text); // 'text' opnieuw toevoegen aan scherm
 
-        kiesBiljet = Integer.parseInt(bedrag);  //gekozen biljet omzetten naar een int
-
-        biljettenBerekenen(kiesBiljet, bedragint);  //berekenen welke biljetten er uitgegevn moeten worden
 
 
-        as.clear();
+        //as.clear();
         System.out.println("geld uitgeven");
 
         //geld codes en aantallen doorgeven aan arduino voor uitgifte
-        if (kiesBiljet == 10) {
-            SerialOut.sendToArduino("$" + keuze);
 
-            Thread.sleep(2000 * keuze); //na elke doorgestuurde regel even wachten, zodat de arduino tijd heeft voor uitgifte
+        //$=> biljet van 10
+        //%=> biljet van 20
+        //&=> biljet van 50
 
-        }
-        if (kiesBiljet == 20) {
-            SerialOut.sendToArduino("%" + keuze);
-            Thread.sleep(2000 * keuze);
-
-        }
-        if (kiesBiljet == 50) {
-            SerialOut.sendToArduino("&" + keuze);
-            Thread.sleep(2000 * keuze);
-
-        }
         if (vijftig > 0) {
+            System.out.println("giving 50");
             SerialOut.sendToArduino("&" + vijftig);
-            Thread.sleep(2000 * vijftig);
+            try {
+                response = httpGet.httpRequest("billItems/" + 50 + "/" + db50);
+                response = response.replaceAll("\n", "");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                Thread.sleep(4000 * vijftig);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         if (twintig > 0) {
 
-
+            System.out.println("giving 20");
             SerialOut.sendToArduino("%" + twintig);
-            Thread.sleep(2000 * twintig);
+            try {
+                response = httpGet.httpRequest("billItems/" + 20 + "/" + db20);
+                response = response.replaceAll("\n", "");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                Thread.sleep(4000 * twintig);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         if (tien > 0) {
+            System.out.println("giving 10");
             SerialOut.sendToArduino("$" + tien);
-            Thread.sleep(2000 * tien);
+            try {
+                response = httpGet.httpRequest("billItems/" + 10 + "/" + db10);
+                response = response.replaceAll("\n", "");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                Thread.sleep(4000 * tien);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
         }
         try {
-            sleep(2500); //wacht 2,5 seconden
+            Thread.sleep(2500); //wacht 2,5 seconden
         } catch (InterruptedException e) {
             e.printStackTrace();
 
@@ -578,7 +681,7 @@ public class ATM {
     
     //functie voor intoetsen van bedrag
 
-    private void bedragIntoetsen() throws InterruptedException {
+    private void bedragIntoetsen()  {
         as.clear(); //scherm leeg maken
         text.giveOutput("Toets bedrag in");
         as.add(text);  //toevoegen aan scherm
@@ -666,24 +769,27 @@ public class ATM {
         }
 
         as.clear(); //scherm leegmaken
-        return;
+         doTransaction();
 
 
     }
 
 
     //functie voor het kiezen van biljet
-    private void biljettenKiezen() throws InterruptedException {
+    private void biljettenKiezen() {
         as.clear();
 
-        text.giveOutput("Kies de biljetten waarvan u de meeste wilt");
+        text.giveOutput("Kies het biljet waarvan u de meeste wilt");
         as.add(text);
         as.add(moneyButton1);
-        
-        if (bedragint >= 20) {
+
+        if(bedragint >= 10 && db10 >0){
+            as.add(moneyButton1);
+        }
+        if (bedragint >= 20 && db20 >0) {
             as.add(moneyButton2);
         } 
-        if (bedragint >= 50) {
+        if (bedragint >= 50 && db50 >0) {
             as.add(moneyButton3);
         }
         as.add(menuButton3);
@@ -706,7 +812,7 @@ public class ATM {
                         return;
                     }
                     else {
-                        bedrag = input;  //als er een in ingedrukt, opslaan
+                        keuzebiljet = input;  //als er een in ingedrukt, opslaan
                     }
 
                     gekozen = true; //breaken uit while loop
@@ -718,7 +824,7 @@ public class ATM {
         }
         gekozen = false; //gekozen weer op; false zetten voor volgende ronde
         input = ""; //input leegmaken voor hergebruik
-        System.out.println(bedrag);
+        System.out.println(keuzebiljet);
 
 
     }
@@ -753,10 +859,27 @@ public class ATM {
 
         }
 
+        if(biljet == 10){
+
+            tien += keuze;
+        }
+        if(biljet == 20){
+
+            twintig += keuze;
+        }
+        if(biljet == 50){
+
+            vijftig += keuze;
+        }
+
+
         System.out.println("gekozen: " + keuze);
         System.out.println("10: " + tien);
         System.out.println("20: " + twintig);
         System.out.println("50: " + vijftig);
+
+
+
         
 
     }
