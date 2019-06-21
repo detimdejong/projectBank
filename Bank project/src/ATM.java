@@ -164,33 +164,6 @@ public class ATM {
 
     private void doTransaction() {
 
-        try {
-            response = httpGet.httpRequest("billItems/" + 10);
-            response = response.replaceAll("\n", "");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        db10 = Integer.parseInt(response);
-
-        try {
-            response = httpGet.httpRequest("billItems/" + 20);
-            response = response.replaceAll("\n", "");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        db20 = Integer.parseInt(response);
-
-        try {
-            response = httpGet.httpRequest("billItems/" + 50);
-            response = response.replaceAll("\n", "");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        db50 = Integer.parseInt(response);
-
 
         text.giveOutput("Welkom");
         text2.giveOutput("scan uw pas");
@@ -537,6 +510,34 @@ public class ATM {
             goodbye();
             return;
         }
+        try {
+            response = httpGet.httpRequest("billItems/" + 10);
+            response = response.replaceAll("\n", "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        db10 = Integer.parseInt(response);
+
+        try {
+            response = httpGet.httpRequest("billItems/" + 20);
+            response = response.replaceAll("\n", "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        db20 = Integer.parseInt(response);
+
+        try {
+            response = httpGet.httpRequest("billItems/" + 50);
+            response = response.replaceAll("\n", "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        db50 = Integer.parseInt(response);
+
+
 
         biljettenKiezen(); //biljetten kiezen
 
@@ -624,7 +625,7 @@ public class ATM {
             System.out.println("giving 50");
             SerialOut.sendToArduino("&" + vijftig);
             try {
-                response = httpGet.httpRequest("billItems/" + 50 + "/" + db50);
+                response = httpGet.httpRequest("billItems/" + 50 + "/" + vijftig);
                 response = response.replaceAll("\n", "");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -640,7 +641,7 @@ public class ATM {
             System.out.println("giving 20");
             SerialOut.sendToArduino("%" + twintig);
             try {
-                response = httpGet.httpRequest("billItems/" + 20 + "/" + db20);
+                response = httpGet.httpRequest("billItems/" + 20 + "/" + twintig);
                 response = response.replaceAll("\n", "");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -655,7 +656,7 @@ public class ATM {
             System.out.println("giving 10");
             SerialOut.sendToArduino("$" + tien);
             try {
-                response = httpGet.httpRequest("billItems/" + 10 + "/" + db10);
+                response = httpGet.httpRequest("billItems/" + 10 + "/" + tien);
                 response = response.replaceAll("\n", "");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -792,6 +793,7 @@ public class ATM {
         if (bedragint >= 50 && db50 >0) {
             as.add(moneyButton3);
         }
+
         as.add(menuButton3);
         as.add(menuButton4);
 
@@ -892,7 +894,7 @@ public class ATM {
 
         //kijken of er genoeg saldo is en mogelijk gelijk afschrijven
         try {
-            response = httpGet.httpRequest("Withdraw/" + cardnumber + "/ATM/" + bedragint);
+            response = httpGet.httpRequest("Withdraw/" + cardnumber + "/ATM/" + bedragint +"/"+ pin);
             response = response.replaceAll("\n", "");
 
         } catch (IOException e) {
@@ -928,6 +930,8 @@ public class ATM {
         }
 
 
+
+
         text.giveOutput("€" + bedragint + " uitgeven"); //gekozen bedrag op scherm tonen
         text2.giveOutput("Vergeet niet uw pas");
         as.add(text);
@@ -938,7 +942,42 @@ public class ATM {
         as.add(text); // 'text' opnieuw toevoegen aan scherm
 
         //biljet van 50 roebel uitgeven
-        SerialOut.sendToArduino("&" + 1);
+        if(db50 > 1) {
+            SerialOut.sendToArduino("&" + 1);
+            try {
+                response = httpGet.httpRequest("billItems/" + 50 + "/" + 1);
+                response = response.replaceAll("\n", "");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else if( db20 > 2 && db10 > 1){
+
+            SerialOut.sendToArduino("%" + 2);
+
+            try {
+                Thread.sleep(6000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            SerialOut.sendToArduino("$" + 1);
+            try {
+                response = httpGet.httpRequest("billItems/" + 20 + "/" + 2);
+                response = httpGet.httpRequest("billItems/" + 10 + "/" + 1);
+                response = response.replaceAll("\n", "");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }else{
+            SerialOut.sendToArduino("$" + 5);
+            try {
+                response = httpGet.httpRequest("billItems/" + 10 + "/" + 5);
+
+                response = response.replaceAll("\n", "");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
         try {
             Thread.sleep(2000);
